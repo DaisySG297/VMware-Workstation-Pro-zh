@@ -138,6 +138,17 @@ assets/
 - **仅在 VMware Workstation Pro 26H1u1（Build 25688693）x64 上测试通过**；其他版本/架构未经测试，可能不兼容。
 - 本工具提供的汉化产物源自 VMware 官方 17.6.4 中文资源，版权归 Broadcom / VMware 所有，仅供学习研究。
 
+## 开源声明（License）
+
+本项目采用**双重许可**，请区分以下两部分：
+
+| 内容 | 许可 | 说明 |
+|---|---|---|
+| 项目原创代码（工具、脚本、方案数据） | **GNU GPL v3**（SPDX：`GPL-3.0-only`） | 开源软件，见 [`LICENSE`](LICENSE) |
+| 内置语言包（vmsg/DLL/tray/vmnetcfg 成品） | 归 **VMware / Broadcom** 所有 | 独立于项目代码许可，仅限个人学习研究，见 [`NOTICE.md`](NOTICE.md) |
+
+> 内置语言包提取自 VMware Workstation 17.6.4 官方安装包，版权归 VMware / Broadcom，**不属于本项目的 GPL 许可范围**，仅限个人学习研究使用。
+
 ## 免责声明
 
 本项目仅用于技术学习与研究。VMware 及其相关文件版权归 Broadcom / VMware 所有。
