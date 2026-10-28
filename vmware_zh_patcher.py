@@ -21,13 +21,25 @@ import shutil
 import string
 import time
 
-# 中文控制台输出：Windows 中文系统默认 GBK 代码页
-if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+# 中文控制台输出：主动把控制台切换到 UTF-8 代码页，统一按 UTF-8 输出，杜绝乱码
+def _setup_console_utf8():
+    """将 Windows 控制台代码页切换为 UTF-8(65001)，并让 stdout/stderr 按 UTF-8 输出。"""
     try:
-        sys.stdout.reconfigure(encoding='gbk', errors='replace')
-        sys.stderr.reconfigure(encoding='gbk', errors='replace')
+        import ctypes
+        # 设置输出代码页为 65001，使得 UTF-8 字节能被控制台正确渲染
+        ctypes.windll.kernel32.SetConsoleOutputCP(65001)
+        ctypes.windll.kernel32.SetConsoleCP(65001)
     except Exception:
         pass
+    if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
+
+
+_setup_console_utf8()
 
 
 # ---------------------------------------------------------------------------
