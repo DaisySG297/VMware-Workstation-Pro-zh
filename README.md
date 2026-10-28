@@ -1,4 +1,14 @@
-# vmnetcfg-zh
+# vmware-workstation-zh
+
+VMware Workstation Pro 26H1（2026）**全汉化**项目——主程序 + 虚拟网络编辑器。
+
+> **想汉化整个 VMware 主程序？** 见 [`workstation-zh/`](workstation-zh/README.md) —— 单文件 exe，双击一键汉化主程序（vmware.exe）全部界面。
+>
+> 本页以下内容针对**虚拟网络编辑器（vmnetcfg.exe）**这个小工具。
+
+---
+
+# vmnetcfg-zh（虚拟网络编辑器）
 
 VMware Workstation Pro 26H1「虚拟网络编辑器」(vmnetcfg.exe) 的一键汉化工具与成品。
 
