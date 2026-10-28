@@ -24,20 +24,35 @@ VMware Workstation Pro 26H1（2026）起，官方**取消了简体中文界面**
 
 1. 下载 `vmware-zh-patcher.exe`（单文件，约 9.6 MB，已内嵌全部汉化产物）。
 2. **关闭 VMware 相关进程**（尤其是 `vmware-tray.exe`、`vmware.exe`）。
-3. **双击运行**：工具自动定位 VMware 安装目录，选 `1` 汉化。
-4. 若自动定位失败（装在非默认路径），把 `vmware.exe` 拖到工具图标上，或命令行指定：
+3. **双击运行**：工具自动定位 VMware 安装目录，出现菜单：
+
+   ```
+   ==============================================
+           请选择要执行的操作
+   ==============================================
+     [1] 全部汉化（主程序 + 虚拟网络编辑器）
+     [2] 仅汉化主程序（不含 vmnetcfg）
+     [3] 仅汉化虚拟网络编辑器（vmnetcfg）
+     [4] 恢复原版（还原所有英文）
+     [0] 退出
+   ==============================================
+   ```
+
+4. 输入数字回车即可。选 `1` 一次完成全部汉化；不想动 vmnetcfg 就选 `2`。
+5. 若自动定位失败（装在非默认路径），把 `vmware.exe` 拖到工具图标上，或命令行指定：
    ```
    vmware-zh-patcher.exe "D:\Program Files\VMware\VMware Workstation"
    ```
-5. 完成后重新打开 VMware，即显示中文。
+6. 完成后重新打开 VMware，即显示中文。
 
-**恢复原版**：再次运行工具，选 `2` 恢复原版。
+**恢复原版**：再次运行工具，选 `4` 恢复原版。
 
 ### 命令行参数（无人值守）
 
 ```
-vmware-zh-patcher.exe --apply       # 直接汉化
-vmware-zh-patcher.exe --restore     # 直接恢复
+vmware-zh-patcher.exe --apply                 # 全部汉化
+vmware-zh-patcher.exe --apply --no-vmnetcfg   # 仅汉化主程序
+vmware-zh-patcher.exe --restore               # 直接恢复
 vmware-zh-patcher.exe <安装目录> --apply
 ```
 
