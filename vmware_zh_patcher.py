@@ -97,6 +97,27 @@ def _running_vmware_processes():
     return running
 
 
+def _kill_vmware_processes():
+    """结束正在运行的 VMware 相关进程，返回成功结束的数量。"""
+    import subprocess
+    killed = 0
+    names = _running_vmware_processes()
+    for name in names:
+        try:
+            r = subprocess.run(
+                ['taskkill', '/F', '/IM', name],
+                capture_output=True, text=True, errors='ignore', timeout=15,
+            )
+            if r.returncode == 0:
+                killed += 1
+                print('      已结束进程：' + name)
+            else:
+                print('      [警告] 无法结束进程：' + name)
+        except Exception as e:
+            print('      [警告] 结束进程 %s 失败：%s' % (name, e))
+    return killed
+
+
 # ---------------------------------------------------------------------------
 # 内嵌资源解析（PyInstaller --onefile 运行时解包路径）
 # ---------------------------------------------------------------------------
@@ -437,6 +458,7 @@ def main_apply(install, scope='all'):
             else:
                 bak = os.path.join(bk, rel)
                 if not os.path.exists(bak):
+                    os.makedirs(os.path.dirname(bak), exist_ok=True)
                     open(bak + '.was-absent', 'w').close()
             try:
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -739,25 +761,34 @@ def _main_impl():
 
 
 def _run_apply(target, scope, interactive=True):
-    # 执行前检测 VMware 进程，若有运行则明确提示文件占用风险
+    # 执行前检测 VMware 进程，若有运行则提示并可选择自动关闭
     running = _running_vmware_processes()
     if running:
         print('[!!] 检测到以下 VMware 相关进程正在运行：')
         for p in running:
             print('      - ' + p)
         print()
-        print('这些进程可能占用要汉化的文件，导致「文件被占用」错误。')
-        print('建议先关闭所有 VMware 程序（含右下角托盘的 vmware-tray）。')
+        print('这些进程会占用要汉化的文件，导致「文件被占用」错误。')
         print()
         if interactive:
-            ans = _read_choice('仍要继续尝试吗？（输入 y 继续，直接回车取消）：')
-            if ans.strip().lower() not in ('y', 'yes'):
+            print('  [y] 自动关闭这些进程后继续汉化')
+            print('  [c] 不关闭，直接继续尝试')
+            print('  [回车] 取消')
+            print()
+            ans = _read_choice('请选择（y=关闭进程 / c=继续 / 回车=取消）：').strip().lower()
+            print()
+            if ans in ('y', 'yes'):
+                print('正在关闭 VMware 进程...')
+                _kill_vmware_processes()
+                print()
+            elif ans in ('c', 'continue'):
+                print('已选择不关闭，直接继续（可能因文件占用失败）。')
+                print()
+            else:
                 print('已取消。')
                 return
-            print()
 
     print('正在汉化，请稍候...')
-    print('[提示] 若 VMware 正在运行，请先关闭（尤其是 vmware-tray.exe / vmware.exe）。')
     print()
     ok, skip, fails = main_apply(target, scope)
     print()
@@ -778,6 +809,31 @@ def _run_apply(target, scope, interactive=True):
 
 
 def _run_restore(target, interactive=True):
+    # 恢复同样可能因文件占用失败，检测并提示
+    running = _running_vmware_processes()
+    if running:
+        print('[!!] 检测到以下 VMware 相关进程正在运行：')
+        for p in running:
+            print('      - ' + p)
+        print()
+        if interactive:
+            print('  [y] 自动关闭这些进程后继续恢复')
+            print('  [c] 不关闭，直接继续尝试')
+            print('  [回车] 取消')
+            print()
+            ans = _read_choice('请选择（y=关闭进程 / c=继续 / 回车=取消）：').strip().lower()
+            print()
+            if ans in ('y', 'yes'):
+                print('正在关闭 VMware 进程...')
+                _kill_vmware_processes()
+                print()
+            elif ans in ('c', 'continue'):
+                print('已选择不关闭，直接继续（可能因文件占用失败）。')
+                print()
+            else:
+                print('已取消。')
+                return
+
     print('正在恢复原版，请稍候...')
     restored, removed, fails = main_restore(target)
     print()
