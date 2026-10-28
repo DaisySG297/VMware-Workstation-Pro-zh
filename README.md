@@ -40,7 +40,7 @@ VMware Workstation Pro 自 **25H2 版本起**官方**取消了简体中文界面
 
 ## 快速使用（推荐：一键 exe）
 
-1. 下载 `vmware-zh-patcher.exe`（单文件，约 9.6 MB，已内嵌全部汉化产物）。
+1. 下载 `vmware-zh-patcher.exe`（单文件版，已内嵌全部汉化产物）；若被杀软误报，改用 `vmware-zh-patcher-v1.0.0.zip`（目录版，解压后整个文件夹一起运行）。
 2. **关闭 VMware 相关进程**（尤其是 `vmware-tray.exe`、`vmware.exe`）。
 3. **双击运行**：工具自动定位 VMware 安装目录，出现菜单：
 
@@ -137,6 +137,20 @@ assets/
 - VMware 升级后会覆盖汉化文件，需重新运行工具。
 - **仅在 VMware Workstation Pro 26H1u1（Build 25688693）x64 上测试**；其他版本/架构未经测试，可能不兼容。
 - 本工具提供的汉化产物源自 VMware 官方 17.6.4 中文资源，版权归 Broadcom / VMware 所有，仅供学习研究。
+
+## 杀毒软件误报说明
+
+本工具由 Python + PyInstaller 打包，且需要**修改 VMware 可执行文件、写入系统目录**，因此可能被 Windows Defender 等杀软误报（如 `Behavior:Win32/DefenseEvasion.A!ml`）。
+
+这是**误报**，原因如下：
+
+1. 单文件版（`vmware-zh-patcher.exe`）运行时会把自身解压到临时目录再执行，与恶意软件的 dropper 行为相似；
+2. 工具本身要修改 exe、写系统目录，属于杀软行为检测（`.ml` 启发式）的重点盯防对象。
+
+源码完全开源（见本仓库），可自行审计。若被误报，建议任选其一：
+
+- **改用目录版**（`vmware-zh-patcher-v1.0.0.zip`，解压后整个文件夹一起运行），误报率更低；
+- **加入信任/白名单**：在 Windows Defender「病毒和威胁防护 → 管理设置 → 排除项」中添加本工具。
 
 ## 开源声明（License）
 
