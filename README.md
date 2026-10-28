@@ -4,7 +4,15 @@ VMware Workstation Pro **26H1（2026）** 一键汉化工具——把官方已�
 
 一个单文件 `vmware-zh-patcher.exe`，双击即可汉化**主程序 + 虚拟网络编辑器**，也支持一键恢复原版。
 
-![汉化效果](docs-screenshot-zh.png)
+## 汉化效果
+
+**主程序（VMware Workstation Pro）**：
+
+![主程序汉化效果](docs-screenshot-workstation.png)
+
+**虚拟网络编辑器（vmnetcfg）**：
+
+![虚拟网络编辑器汉化效果](docs-screenshot-zh.png)
 
 ## 背景
 
@@ -81,11 +89,12 @@ vmware-zh-patcher.exe <安装目录> --apply
 
 ```
 .
-├── vmware-zh-patcher.exe     # 一键汉化工具（主程序 + vmnetcfg，核心）
-├── vmware-zh.ico             # 工具图标
-├── vmware_zh_patcher.py      # 工具源码
-├── docs-screenshot-zh.png    # 汉化效果截图
-└── vmnetcfg/                 # 虚拟网络编辑器汉化（子模块）
+├── vmware-zh-patcher.exe         # 一键汉化工具（主程序 + vmnetcfg，核心）
+├── vmware-zh.ico                 # 工具图标
+├── vmware_zh_patcher.py          # 工具源码
+├── docs-screenshot-workstation.png  # 主程序汉化效果截图
+├── docs-screenshot-zh.png        # 虚拟网络编辑器汉化效果截图
+└── vmnetcfg/                     # 虚拟网络编辑器汉化（子模块）
     ├── README.md             # 子模块说明与技术原理
     ├── auto_patch.py         # vmnetcfg 一键汉化脚本
     ├── ...                   # 脚本链与方案数据
