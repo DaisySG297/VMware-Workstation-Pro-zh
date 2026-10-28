@@ -42,6 +42,61 @@ def _setup_console_utf8():
 _setup_console_utf8()
 
 
+def is_admin():
+    """判断当前进程是否具有管理员权限。"""
+    try:
+        import ctypes
+        return bool(ctypes.windll.shell32.IsUserAnAdmin())
+    except Exception:
+        return False
+
+
+def _prompt_exit(msg=''):
+    """出错时暂停，避免窗口一闪而过。"""
+    if msg:
+        print(msg)
+    print()
+    try:
+        input('按回车退出...')
+    except Exception:
+        pass
+
+
+def _friendly_error(e):
+    """把常见 Windows 异常翻译成友好中文提示。"""
+    if isinstance(e, PermissionError):
+        # WinError 5 权限不足 / WinError 32 文件占用
+        code = getattr(e, 'winerror', None)
+        if code == 5:
+            return '权限不足，请以「管理员身份运行」本工具'
+        if code == 32:
+            return '文件被占用，请先关闭 VMware 相关进程（vmware.exe / vmware-tray.exe）'
+        return '权限不足或文件被占用：' + str(e)
+    return str(e)
+
+
+def _running_vmware_processes():
+    """检测正在运行的 VMware 相关进程，返回进程名列表。"""
+    running = []
+    targets = ('vmware.exe', 'vmware-tray.exe', 'vmnetcfg.exe', 'vmware-vmx.exe', 'vmware-authd.exe')
+    try:
+        import subprocess
+        out = subprocess.run(
+            ['tasklist', '/FO', 'CSV', '/NH'],
+            capture_output=True, text=True, errors='ignore', timeout=10,
+        ).stdout
+        for line in out.splitlines():
+            low = line.lower()
+            for t in targets:
+                if t.lower() in low:
+                    name = line.split('","')[0].strip('"')
+                    if name and name not in running:
+                        running.append(name)
+    except Exception:
+        pass
+    return running
+
+
 # ---------------------------------------------------------------------------
 # 内嵌资源解析（PyInstaller --onefile 运行时解包路径）
 # ---------------------------------------------------------------------------
@@ -373,7 +428,10 @@ def main_apply(install, scope='all'):
                 bak = os.path.join(bk, rel)
                 if not os.path.exists(bak):
                     os.makedirs(os.path.dirname(bak), exist_ok=True)
-                    shutil.copy2(dst, bak)
+                    try:
+                        shutil.copy2(dst, bak)
+                    except Exception as e:
+                        fails.append('备份失败 %s: %s' % (rel, _friendly_error(e)))
                 else:
                     skip += 1
             else:
@@ -385,7 +443,7 @@ def main_apply(install, scope='all'):
                 shutil.copy2(src, dst)
                 ok += 1
             except Exception as e:
-                fails.append('%s: %s' % (rel, e))
+                fails.append('%s: %s' % (rel, _friendly_error(e)))
         print('[OK] 主程序界面汉化完成（4 个语言文件）')
 
     # 2) vmnetcfg 二进制汉化
@@ -395,11 +453,11 @@ def main_apply(install, scope='all'):
     vmn = os.path.join(install, 'vmnetcfg.exe')
     if os.path.exists(vmn):
         bak = os.path.join(bk, 'vmnetcfg.exe')
-        if not os.path.exists(bak):
-            shutil.copy2(vmn, bak)
-        else:
-            skip += 1
         try:
+            if not os.path.exists(bak):
+                shutil.copy2(vmn, bak)
+            else:
+                skip += 1
             whole = bytearray(open(vmn, 'rb').read())
             orig_size = len(whole)
             if whole.find(MARKER) >= 0:
@@ -416,7 +474,7 @@ def main_apply(install, scope='all'):
                 print('[..] vmnetcfg.exe 未发现消息表（可能已汉化或非原版），跳过')
                 skip += 1
         except Exception as e:
-            fails.append('vmnetcfg.exe: %s' % e)
+            fails.append('vmnetcfg.exe: %s' % _friendly_error(e))
     else:
         print('[..] 未找到 vmnetcfg.exe，跳过')
 
@@ -574,13 +632,60 @@ def _input_countdown(seconds, cancel_key='0'):
     return True
 
 
+def _relaunch_as_admin():
+    """尝试以管理员身份重新启动自身（触发 UAC），返回是否已发起提权。"""
+    try:
+        import ctypes
+        args = ' '.join('"%s"' % a for a in sys.argv[1:])
+        exe = sys.executable
+        if getattr(sys, 'frozen', False):
+            exe = os.path.abspath(sys.argv[0])
+        r = ctypes.windll.shell32.ShellExecuteW(
+            None, 'runas', exe, args, None, 1)
+        # ShellExecuteW 返回值 > 32 表示成功发起
+        return r > 32
+    except Exception:
+        return False
+
+
 def main():
+    # 顶层兜底：任何未捕获异常都停住显示，避免窗口一闪而过
+    try:
+        _main_impl()
+    except Exception as e:
+        print()
+        print('[!!] 发生未预期的错误：')
+        print('      ' + str(e))
+        print()
+        print('请把本错误信息反馈给开发者。')
+        _prompt_exit()
+
+
+def _main_impl():
     args = sys.argv[1:]
+
+    print_banner()
+
+    # 管理员权限检测：写入 C:\Program Files 需要管理员
+    if not is_admin():
+        print('[提示] 汉化需要写入 VMware 安装目录（通常在 C:\\Program Files），')
+        print('       需要管理员权限。正在尝试以管理员身份重新启动...')
+        print()
+        if _relaunch_as_admin():
+            # 已发起提权，本进程直接退出，等待新进程
+            print('已请求管理员权限，请在弹出的 UAC 窗口中点「是」。')
+            _prompt_exit()
+            return
+        print('[!!] 无法自动提权。')
+        print()
+        print('请右键本工具 -> 选择「以管理员身份运行」。')
+        print()
+        _prompt_exit()
+        return
+
     target = resolve_target(args)
     if target is None:
         target = find_install_dir()
-
-    print_banner()
 
     if target is None or not os.path.isfile(os.path.join(target, 'vmware.exe')):
         print('[!!] 未自动定位到 VMware 安装目录。')
@@ -589,7 +694,7 @@ def main():
         print('  1. 把 vmware.exe 拖到本工具图标上')
         print('  2. 命令行：vmware-zh-patcher.exe "D:\\Program Files\\VMware\\VMware Workstation"')
         print()
-        _read_choice('按回车退出...')
+        _prompt_exit()
         return
 
     print('[+] 安装目录：' + target)
@@ -634,6 +739,23 @@ def main():
 
 
 def _run_apply(target, scope, interactive=True):
+    # 执行前检测 VMware 进程，若有运行则明确提示文件占用风险
+    running = _running_vmware_processes()
+    if running:
+        print('[!!] 检测到以下 VMware 相关进程正在运行：')
+        for p in running:
+            print('      - ' + p)
+        print()
+        print('这些进程可能占用要汉化的文件，导致「文件被占用」错误。')
+        print('建议先关闭所有 VMware 程序（含右下角托盘的 vmware-tray）。')
+        print()
+        if interactive:
+            ans = _read_choice('仍要继续尝试吗？（输入 y 继续，直接回车取消）：')
+            if ans.strip().lower() not in ('y', 'yes'):
+                print('已取消。')
+                return
+            print()
+
     print('正在汉化，请稍候...')
     print('[提示] 若 VMware 正在运行，请先关闭（尤其是 vmware-tray.exe / vmware.exe）。')
     print()
