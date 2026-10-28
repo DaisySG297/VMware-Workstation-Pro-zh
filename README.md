@@ -22,7 +22,7 @@ VMware Workstation Pro **26H1（2026）** 一键汉化工具——把官方已�
 
 ## 背景
 
-VMware Workstation Pro 26H1（2026）起，官方**取消了简体中文界面**，26H1u1 仅提供 English / French / Japanese / Spanish 四种语言。中文系统用户看到的只有英文界面。
+VMware Workstation Pro 自 **25H2 版本起**官方**取消了简体中文界面**（10.0～17.6 期间一直提供简体中文），25H2 及之后的 26H1 仅提供 English / French / Japanese / Spanish 四种语言。中文系统用户看到的只有英文界面。
 
 本项目把完整的汉化成果（源自 VMware 官方 17.6.4 中文资源，移植到 26H1 x64）打包成一个工具，一键完成汉化。
 
