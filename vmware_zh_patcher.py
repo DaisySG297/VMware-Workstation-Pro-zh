@@ -16,6 +16,7 @@ VMware Workstation Pro 26H1u1 全汉化一键工具（主程序 + 虚拟网络�
       vmware-zh-patcher.exe --restore                # 直接恢复（跳过交互）
 """
 import os
+import re
 import sys
 import shutil
 import string
@@ -129,6 +130,82 @@ def resource_path(rel):
 ASSETS_DIR = resource_path('assets')
 
 BACKUP_DIR_NAME = 'vmware-zh_CN-backup'
+
+
+# ---------------------------------------------------------------------------
+# preferences.ini pref.locale 自动配置
+# ---------------------------------------------------------------------------
+# VMware 的 Msg_SetLocaleEx 依赖 %APPDATA%\VMware\preferences.ini 中的
+# pref.locale 决定 UI 语言；缺省时 UserLocale=NULL（本机 CRT setlocale
+# 不接受 "GBK"/"zh_CN" 名），导致 zh_CN 消息目录完全不被加载、界面保持英文。
+PREF_LOCALE_LINE = 'pref.locale = "zh_CN"'
+
+
+def _preferences_ini_path():
+    appdata = os.environ.get('APPDATA') or os.environ.get('USERPROFILE')
+    if not appdata:
+        return None
+    return os.path.join(appdata, 'VMware', 'preferences.ini')
+
+
+def _read_text_auto(path):
+    """按 UTF-8 → GBK 顺序尝试解码，返回 (文本, 使用的编码)。"""
+    data = open(path, 'rb').read()
+    for enc in ('utf-8', 'gbk'):
+        try:
+            return data.decode(enc), enc
+        except UnicodeDecodeError:
+            continue
+    return data.decode('utf-8', 'ignore'), 'utf-8'
+
+
+def set_pref_locale(fails):
+    """写入/更新 %APPDATA%\\VMware\\preferences.ini 的 pref.locale = "zh_CN"。"""
+    path = _preferences_ini_path()
+    if not path:
+        fails.append('pref.locale: 未找到 APPDATA 环境变量，请手动在 preferences.ini 中添加 ' + PREF_LOCALE_LINE)
+        return
+    try:
+        if os.path.exists(path):
+            content, enc = _read_text_auto(path)
+            if re.search(r'^\s*pref\.locale\s*=\s*"zh_CN"\s*$', content, re.M):
+                print('[OK] preferences.ini 已包含 pref.locale = "zh_CN"（跳过）')
+                return
+            if re.search(r'^\s*pref\.locale\s*=', content, re.M):
+                content = re.sub(r'^(\s*pref\.locale\s*=).*$', r'\1 "zh_CN"', content, flags=re.M)
+            else:
+                if content and not content.endswith('\n'):
+                    content += '\n'
+                content += PREF_LOCALE_LINE + '\n'
+            with open(path, 'w', encoding=enc, newline='') as f:
+                f.write(content)
+            print('[OK] 已写入 pref.locale = "zh_CN"（' + path + '）')
+        else:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, 'w', encoding='utf-8', newline='') as f:
+                f.write(PREF_LOCALE_LINE + '\n')
+            print('[OK] 已创建 ' + path + ' 并写入 pref.locale = "zh_CN"')
+    except Exception as e:
+        fails.append('pref.locale: ' + _friendly_error(e))
+
+
+def unset_pref_locale(fails):
+    """恢复原版时移除 pref.locale 行。返回移除的行数（0 或 1）。"""
+    path = _preferences_ini_path()
+    if not path or not os.path.exists(path):
+        return 0
+    try:
+        content, enc = _read_text_auto(path)
+        new_content = re.sub(r'^\s*pref\.locale\s*=.*\r?\n?', '', content, flags=re.M)
+        if new_content == content:
+            return 0
+        with open(path, 'w', encoding=enc, newline='') as f:
+            f.write(new_content)
+        print('[OK] 已从 preferences.ini 移除 pref.locale 设置')
+        return 1
+    except Exception as e:
+        fails.append('pref.locale 恢复: ' + _friendly_error(e))
+        return 0
 
 # 主程序汉化：资源名 -> 目标相对路径（需部署到安装目录）
 MAIN_FILES = [
@@ -467,6 +544,7 @@ def main_apply(install, scope='all'):
             except Exception as e:
                 fails.append('%s: %s' % (rel, _friendly_error(e)))
         print('[OK] 主程序界面汉化完成（4 个语言文件）')
+        set_pref_locale(fails)
 
     # 2) vmnetcfg 二进制汉化
     if scope not in ('all', 'vmnetcfg'):
@@ -546,6 +624,8 @@ def main_restore(install):
             restored += 1
         except Exception as e:
             fails.append('vmnetcfg.exe: %s' % e)
+
+    removed += unset_pref_locale(fails)
 
     return restored, removed, fails
 
