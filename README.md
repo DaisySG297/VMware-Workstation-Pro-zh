@@ -40,7 +40,7 @@ VMware Workstation Pro 自 **25H2 版本起**官方**取消了简体中文界面
 
 ## 快速使用（推荐：一键 exe）
 
-1. 下载 `vmware-zh-patcher.exe`（单文件版，已内嵌全部汉化产物）；若被杀软误报，改用 `vmware-zh-patcher-v1.0.0.zip`（目录版，解压后整个文件夹一起运行）。
+1. 下载 `vmware-zh-patcher.exe`（单文件版，已内嵌全部汉化产物）；若被杀软误报，可按下方「自行打包」章节自建目录版运行。
 2. **关闭 VMware 相关进程**（尤其是 `vmware-tray.exe`、`vmware.exe`）。
 3. **双击运行**：工具自动定位 VMware 安装目录，出现菜单：
 
@@ -61,9 +61,9 @@ VMware Workstation Pro 自 **25H2 版本起**官方**取消了简体中文界面
    ```
    vmware-zh-patcher.exe "D:\Program Files\VMware\VMware Workstation"
    ```
-6. 完成后重新打开 VMware，即显示中文。
+6. 完成后重新打开 VMware，即显示中文。工具会自动在 `%APPDATA%\VMware\preferences.ini` 写入 `pref.locale = "zh_CN"`——**这一步是必需的**：VMware 25H2/26H1 在没有该配置时不会加载 `messages/zh_CN/` 目录（日志表现为 `Msg_SetLocaleEx: HostLocale=GBK UserLocale=NULL`），即使汉化文件已全部就位，界面依然是英文。
 
-**恢复原版**：再次运行工具，选 `4` 恢复原版。
+**恢复原版**：再次运行工具，选 `4` 恢复原版（会同时从 preferences.ini 移除 `pref.locale` 设置）。
 
 ### 命令行参数（无人值守）
 
@@ -87,6 +87,7 @@ vmware-zh-patcher.exe <安装目录> --apply
 主程序汉化与虚拟网络编辑器（vmnetcfg）采用不同方式：
 
 - **主程序**：文字通过 `messages/zh_CN/` 目录下的语言文件动态加载，只需部署正确的中文文件即可，**无需修改 vmware.exe 本体**。
+- **UI 语言选择**：VMware 由 `%APPDATA%\VMware\preferences.ini` 的 `pref.locale` 决定加载哪个语言目录；缺省时 locale 解析可能返回 NULL（部分系统的 CRT 不接受 `GBK`/`zh_CN` 作为 setlocale 名），导致中文资源完全不被加载。因此工具在汉化时**自动写入** `pref.locale = "zh_CN"`，恢复原版时**自动移除**。
 - **虚拟网络编辑器（vmnetcfg.exe）**：文字硬编码在 exe 的 `.rdata` 段，需二进制等长替换 + 借用 padding（详见 [`vmnetcfg/README.md`](vmnetcfg/README.md)）。
 
 本工具的做法：把 5 个汉化文件内嵌进 exe，运行时自动备份原文件到安装目录的 `vmware-zh_CN-backup/`，再复制汉化文件到对应位置。
@@ -149,7 +150,7 @@ assets/
 
 源码完全开源（见本仓库），可自行审计。若被误报，建议任选其一：
 
-- **改用目录版**（`vmware-zh-patcher-v1.0.0.zip`，解压后整个文件夹一起运行），误报率更低；
+- **改用目录版**：按「自行打包」章节用 PyInstaller `--onedir` 自建目录版，解压后整个文件夹一起运行，误报率更低；
 - **加入信任/白名单**：在 Windows Defender「病毒和威胁防护 → 管理设置 → 排除项」中添加本工具。
 
 ## 开源声明（License）
